@@ -3,6 +3,22 @@
 # This docker-compose file is meant to be used by developers working on the Tuleap codebase
 
 services:
+  nix:
+    image: nixos/nix
+    working_dir: "/workdir"
+    command: nix-shell --run "
+      make composer; 
+      pnpm install; 
+      pnpm run build; 
+      make .env; 
+      make generate-mo; 
+      make generate-templates; 
+      make js-build;
+      nix-collect-garbage"
+    volumes:
+      - .:/workdir
+      - nix-store-data:/nix/store
+
   reverse-proxy:
     build:
       context: tools/docker/reverse-proxy
@@ -13,6 +29,8 @@ services:
       - reverse-proxy-cert:/etc/pki/tls
     depends_on:
     - web
+    ports:
+      - "443:443"
     networks:
       default:
         aliases:
@@ -53,6 +71,8 @@ services:
       context: tools/docker/gerrit
       platforms:
         - linux/amd64
+    ports:
+      - "8080:8080"
     env_file:
       - .env
     environment:
@@ -79,6 +99,8 @@ services:
       platforms:
         - linux/amd64
     hostname: 'gitlab.local'
+    ports:
+      - "1443:443"
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'https://gitlab.local'
@@ -115,10 +137,10 @@ services:
     image: mysql:8.0
     env_file:
       - .env
-    command: --upgrade=FORCE
+    command: ["--upgrade=FORCE", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--sql-mode=NO_ENGINE_SUBSTITUTION"]
     volumes:
       - ./src/etc/tuleap-mysql80-dev.cnf:/etc/mysql/conf.d/tuleap.cnf:ro,cached
-      - db80-data:/var/lib/mysql
+      - db-data:/var/lib/mysql
 
   redis:
     image: redis:3.2
@@ -147,19 +169,20 @@ services:
     volumes:
       - ldap-data:/data
     ports:
-      - "6443:443"
+      - "7443:443"
     environment:
       - PHPLDAPADMIN_LDAP_HOSTS=ldap
 
 volumes:
-  tuleap-data:
-  ldap-data:
+  db-data:
   gerrit-data:
   gitlab-config:
   gitlab-data:
-  db80-data:
+  jenkins-data:
+  ldap-data:
+  meilisearch-data:
+  nix-store-data:
+  prom-data:
   redis-data:
   reverse-proxy-cert:
-  prom-data:
-  jenkins-data:
-  meilisearch-data:
+  tuleap-data:

@@ -18,6 +18,7 @@ tools/utils/*/vendor/
 npm-debug.log
 yarn-error.log
 .pnpm-debug.log
+.pnpm-store/
 .env
 .DS_Store
 .sass-cache/
